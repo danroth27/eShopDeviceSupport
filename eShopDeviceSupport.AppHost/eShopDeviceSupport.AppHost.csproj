@@ -1,0 +1,22 @@
+<Project Sdk="Aspire.AppHost.Sdk/17.1.0-preview.1.26558.3">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net11.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AspireUseCliBundle>true</AspireUseCliBundle>
+    <IsAspireHost>true</IsAspireHost>
+    <UserSecretsId>fc9c3f5e-25b0-494d-b505-8576236766c9</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.Blazor" Version="17.1.0-preview.1.26558.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\eShopDeviceSupport.Api\eShopDeviceSupport.Api.csproj" />
+    <ProjectReference Include="..\eShopDeviceSupport.Client\eShopDeviceSupport.Client.csproj" />
+  </ItemGroup>
+
+</Project>

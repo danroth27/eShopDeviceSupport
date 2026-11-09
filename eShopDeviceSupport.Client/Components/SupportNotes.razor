@@ -1,0 +1,23 @@
+<aside class="panel notes-panel">
+    <p class="eyebrow">Your next step</p>
+    <h2>Support notes</h2>
+    <p class="muted">Keep working while the background analysis runs.</p>
+    <label for="support-note">Case note</label>
+    <textarea id="support-note" @bind="note" @bind:event="oninput" maxlength="3000"
+              placeholder="What would you recommend to the customer?"></textarea>
+    <div class="note-footer"><span>Local draft · not sent</span><span>@note.Length / 3000</span></div>
+    <div class="case-checklist">
+        <h3>Before replacing the dock</h3>
+        <p>Check the original power adapter.</p>
+        <p>Confirm the firmware version.</p>
+        <p>Review the event sequence.</p>
+    </div>
+    <div class="local-first-callout">
+        <strong>Evidence stays local.</strong>
+        <p>The browser processes the exported bundle. The backend supplies product rules, not raw-log analysis.</p>
+    </div>
+</aside>
+
+@code {
+    private string note = "";
+}

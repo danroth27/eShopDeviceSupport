@@ -1,0 +1,61 @@
+<section class="panel findings-panel">
+    <div class="panel-heading">
+        <div><p class="eyebrow">Known issue matching</p><h2>Diagnostic findings</h2></div>
+        <span class="partner-credit">Infragistics Grid Lite + Combo Box</span>
+    </div>
+    @if (Findings.Count == 0)
+    {
+        <div class="empty-state"><span class="empty-symbol">?</span>
+            <h3>@(Analyzed ? "No known issues matched." : "Turn device logs into a next step.")</h3>
+            <p>@(Analyzed ? "The local events were reviewed against the current product rules. Keep investigating the customer's symptoms."
+                : "Analyze the bundle to identify power resets, display interruptions, and related USB reconnects.")</p>
+        </div>
+    }
+    else
+    {
+        <div class="findings-toolbar">
+            <span>@Findings.Count known issues identified</span>
+            <IgbCombo TValue="string" TItem="CategoryOption" Data="@categories" ValueKey="Id" DisplayKey="Name"
+                      Value="@selected" ValueChanged="FilterChanged" SingleSelect="true" Label="Category"
+                      Placeholder="All categories" class="category-filter" />
+        </div>
+        <IgbGridLite Data="@filtered" class="findings-grid">
+            <IgbGridLiteColumn Field="@nameof(DiagnosticFinding.Category)" Header="Category" Width="115px" Sortable />
+            <IgbGridLiteColumn Field="@nameof(DiagnosticFinding.Severity)" Header="Severity" Width="125px" />
+            <IgbGridLiteColumn Field="@nameof(DiagnosticFinding.Summary)" Header="Finding" />
+            <IgbGridLiteColumn Field="@nameof(DiagnosticFinding.Occurrences)" Header="Events" Width="105px"
+                               DataType="GridLiteColumnDataType.Number" Sortable />
+        </IgbGridLite>
+        <div class="next-steps">
+            @foreach (var finding in filtered)
+            {
+                <div class="finding-guidance" @key="finding.Id">
+                    <span class="category-pill">@finding.Category</span>
+                    <p><strong>@finding.Summary</strong><span>@finding.Guidance</span></p>
+                </div>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter] public IReadOnlyList<DiagnosticFinding> Findings { get; set; } = [];
+    [Parameter] public bool Analyzed { get; set; }
+    private readonly CategoryOption[] categories =
+        [new("*", "All categories"), new("Display", "Display"), new("Power", "Power"), new("USB", "USB")];
+    private string[] selected = ["*"];
+    private IReadOnlyList<DiagnosticFinding> filtered = [];
+
+    protected override void OnParametersSet() => ApplyFilter();
+
+    private void FilterChanged(string[] values)
+    {
+        selected = values;
+        ApplyFilter();
+    }
+
+    private void ApplyFilter() => filtered = selected.Length == 0 || selected.Contains("*")
+        ? Findings : Findings.Where(f => selected.Contains(f.Category)).ToArray();
+
+    public sealed record CategoryOption(string Id, string Name);
+}

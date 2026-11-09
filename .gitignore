@@ -1,0 +1,13 @@
+**/bin/
+**/obj/
+.vs/
+.aspire/
+TestResults/
+*.user
+*.suo
+*.log
+*.binlog
+.env
+.env.*
+*.zip
+!eShopDeviceSupport.Client/wwwroot/samples/dock-pro.synthetic.zip

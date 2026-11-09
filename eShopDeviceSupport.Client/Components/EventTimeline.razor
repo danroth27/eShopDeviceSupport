@@ -1,0 +1,29 @@
+<section class="panel timeline-panel">
+    <div class="panel-heading">
+        <div><p class="eyebrow">Correlated events · UTC</p><h2>See the interruptions together</h2></div>
+        <span class="partner-credit">Syncfusion Toolkit</span>
+    </div>
+    @if (Points.Count == 0)
+    {
+        <div class="timeline-empty"><div></div><p>The event timeline appears after local analysis.</p></div>
+    }
+    else
+    {
+        <SfChart Height="260px">
+            <ChartPrimaryXAxis ValueType="Syncfusion.Blazor.Toolkit.ValueType.Category" Interval="10" />
+            <ChartPrimaryYAxis Title="Matched events" Minimum="0" />
+            <ChartSeries DataSource="@Points" XName="Time" YName="Display" Name="Display interruptions"
+                         Type="ChartSeriesType.Line" Fill="#117c91" Width="3" />
+            <ChartSeries DataSource="@Points" XName="Time" YName="Power" Name="Power resets"
+                         Type="ChartSeriesType.Line" Fill="#e8a33b" Width="3" />
+            <ChartSeries DataSource="@Points" XName="Time" YName="Usb" Name="USB reconnects"
+                         Type="ChartSeriesType.Line" Fill="#6754a6" Width="3" />
+            <ChartLegendSettings Visible="true" />
+            <ChartTooltipSettings Enable="true" />
+        </SfChart>
+    }
+</section>
+
+@code {
+    [Parameter] public IReadOnlyList<DiagnosticTimelinePoint> Points { get; set; } = [];
+}

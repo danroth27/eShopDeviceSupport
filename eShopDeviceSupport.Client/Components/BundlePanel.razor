@@ -1,0 +1,55 @@
+<section class="panel bundle-panel">
+    <div class="section-heading"><span class="step-number">1</span><h2>Diagnostic bundle</h2></div>
+    <p class="muted">Use the customer's exported logs. Analysis happens here, in the browser.</p>
+    <label class="file-picker" for="diagnostic-file">
+        <span class="file-symbol">ZIP</span>
+        <strong>@(FileName ?? "Choose a diagnostic export")</strong>
+        <span>@(FileName is null ? "ZIP file, up to 16 MB" : $"{FileBytes / 1048576d:F1} MB · stays on this device")</span>
+    </label>
+    <InputFile id="diagnostic-file" OnChange="SelectFileAsync" accept=".zip" disabled="@State.IsBusy" />
+    <a class="sample-download" href="samples/dock-pro.synthetic.zip" download>Download synthetic demo bundle</a>
+    <div class="rules-source">
+        <span class="connection-dot"></span>
+        <div><strong>@(Catalog is null ? "Product rules" : $"{Catalog.Rules.Count} diagnostic rules loaded")</strong>
+            <small>@(Catalog is null ? "Loaded from the diagnostics API when you choose a bundle." : $"diagnostics API · version {Catalog.RuleVersion}")</small>
+        </div>
+    </div>
+    <div class="section-heading analysis-heading"><span class="step-number">2</span><h2>Run the analysis</h2></div>
+    <p class="muted">Same C# parser. Same findings. Two execution modes.</p>
+    <button id="main-analysis" class="button button-secondary" disabled="@(State.IsBusy || FileName is null || !State.WorkerReady)"
+            @onclick="() => Analyze.InvokeAsync(AnalysisMode.MainThread)">Analyze on UI thread</button>
+    <button id="worker-analysis" class="button button-primary" disabled="@(State.IsBusy || FileName is null || !State.WorkerReady)"
+            @onclick="() => Analyze.InvokeAsync(AnalysisMode.WebWorker)">Analyze in Web Worker</button>
+    <div id="analysis-status" class="analysis-status" data-running="@State.IsBusy" role="status">
+        @if (State.IsBusy)
+        {
+            <span class="activity-spinner"></span>
+        }
+        <span>@State.Status</span>
+    </div>
+    @if (State.WorkerRunning)
+    {
+        <button class="button button-text" @onclick="Cancel">Cancel background analysis</button>
+    }
+    <dl class="timing-comparison">
+        <div><dt>UI thread</dt><dd>@(State.MainSeconds is { } main ? $"{main:F2} s" : "—")</dd></div>
+        <div><dt>Web Worker</dt><dd>@(State.WorkerSeconds is { } worker ? $"{worker:F2} s" : "—")</dd></div>
+    </dl>
+    @if (State.ResultsMatch)
+    {
+        <p id="matching-results" class="match-message">Identical findings verified in both modes.</p>
+    }
+    <p class="privacy-note">Raw logs and support notes are never included in API calls or telemetry.</p>
+</section>
+
+@code {
+    [Parameter] public string? FileName { get; set; }
+    [Parameter] public long FileBytes { get; set; }
+    [Parameter] public DiagnosticCatalog? Catalog { get; set; }
+    [Parameter, EditorRequired] public WorkbenchState State { get; set; } = new(false, false, "", null, null, false);
+    [Parameter] public EventCallback<IBrowserFile> FileSelected { get; set; }
+    [Parameter] public EventCallback<AnalysisMode> Analyze { get; set; }
+    [Parameter] public EventCallback Cancel { get; set; }
+
+    private Task SelectFileAsync(InputFileChangeEventArgs args) => FileSelected.InvokeAsync(args.File);
+}

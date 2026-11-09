@@ -1,0 +1,10 @@
+<Solution>
+  <Project Path="eShopDeviceSupport.Api/eShopDeviceSupport.Api.csproj" />
+  <Project Path="eShopDeviceSupport.AppHost/eShopDeviceSupport.AppHost.csproj" />
+  <Project Path="eShopDeviceSupport.Client/eShopDeviceSupport.Client.csproj" />
+  <Project Path="eShopDeviceSupport.ClientDefaults/eShopDeviceSupport.ClientDefaults.csproj" />
+  <Project Path="eShopDeviceSupport.Diagnostics/eShopDeviceSupport.Diagnostics.csproj" />
+  <Project Path="eShopDeviceSupport.ServiceDefaults/eShopDeviceSupport.ServiceDefaults.csproj" />
+  <Project Path="eShopDeviceSupport.Tests/eShopDeviceSupport.Tests.csproj" />
+  <Project Path="eShopDeviceSupport.Worker/eShopDeviceSupport.Worker.csproj" />
+</Solution>

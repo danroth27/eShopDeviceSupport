@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+    <StaticWebAssetSpaFallbackEnabled>true</StaticWebAssetSpaFallbackEnabled>
+    <MetricsSupport>true</MetricsSupport>
+    <EventSourceSupport>true</EventSourceSupport>
+    <HttpActivityPropagationSupport>true</HttpActivityPropagationSupport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="IgniteUI.Blazor.GridLite" Version="1.0.0" />
+    <PackageReference Include="IgniteUI.Blazor.Lite" Version="1.0.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="11.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Gateway" Version="11.0.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="11.0.0" />
+    <PackageReference Include="Syncfusion.Blazor.Toolkit" Version="2.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\eShopDeviceSupport.ClientDefaults\eShopDeviceSupport.ClientDefaults.csproj" />
+    <ProjectReference Include="..\eShopDeviceSupport.Diagnostics\eShopDeviceSupport.Diagnostics.csproj" />
+    <ProjectReference Include="..\eShopDeviceSupport.Worker\eShopDeviceSupport.Worker.csproj" />
+  </ItemGroup>
+
+</Project>

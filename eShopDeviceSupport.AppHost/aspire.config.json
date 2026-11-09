@@ -1,0 +1,9 @@
+{
+  "appHost": {
+    "path": "eShopDeviceSupport.AppHost.csproj"
+  },
+  "sdk": {
+    "version": "17.1.0-preview.1.26558.3"
+  },
+  "channel": "daily"
+}

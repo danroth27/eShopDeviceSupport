@@ -1,0 +1,192 @@
+﻿@page "/"
+
+@using eShopDeviceSupport.Client.Services
+@using eShopDeviceSupport.Diagnostics
+@inject DiagnosticCatalogClient CatalogClient
+@inject ILogger<Home> Logger
+@inject IJSRuntime JS
+@inject DiagnosticTelemetry Telemetry
+@implements IAsyncDisposable
+
+<PageTitle>eShop device support</PageTitle>
+<div class="case-heading">
+    <div><p class="eyebrow">Case ES-1048 · USB-C Dock Pro</p>
+        <h1>Why do the displays keep disconnecting?</h1>
+        <p>Find the signal in the customer's diagnostic export. Keep the evidence on this device.</p>
+    </div>
+    <span class="case-status">Investigating</span>
+</div>
+@if (error is not null)
+{
+    <div class="error-banner" role="alert">@error</div>
+}
+<div class="workbench-columns">
+    <BundlePanel FileName="@fileName" FileBytes="@(bundle?.LongLength ?? 0)" Catalog="catalog"
+                 State="State" FileSelected="SelectFileAsync" Analyze="AnalyzeAsync" Cancel="CancelAsync" />
+    <div class="evidence-column">
+        <div class="evidence-summary">
+            <div><span>Events reviewed</span><strong id="event-count">@(analysis is null ? "—" : analysis.EventCount.ToString("N0"))</strong></div>
+            <div><span>Known findings</span><strong>@(analysis is null ? "—" : analysis.Findings.Count.ToString())</strong></div>
+            <div><span>Processing location</span><strong class="location-value">This browser</strong></div>
+        </div>
+        <FindingsPanel Findings="@(analysis?.Findings ?? [])" Analyzed="@(analysis is not null)" />
+        <EventTimeline Points="@(analysis?.Timeline ?? [])" />
+    </div>
+    <SupportNotes />
+</div>
+@code {
+    private DiagnosticCatalog? catalog;
+    private string? error;
+    private byte[]? bundle;
+    private string? fileName;
+    private DiagnosticAnalysis? analysis, mainResult, workerResult;
+    private double? mainSeconds, workerSeconds;
+    private bool busy, workerReady, resetting;
+    private AnalysisMode? runningMode;
+    private string status = "Preparing the background .NET runtime…";
+    private DiagnosticWorkbenchSession? session;
+    private CancellationTokenSource? operation;
+    private readonly CancellationTokenSource lifetime = new();
+    private static readonly System.Text.Json.JsonSerializerOptions JsonOptions = new(System.Text.Json.JsonSerializerDefaults.Web);
+    private WorkbenchState State => new(busy || resetting, workerReady, status, mainSeconds, workerSeconds,
+        analysis is not null && mainResult is not null && workerResult is not null
+        && System.Text.Json.JsonSerializer.Serialize(mainResult, JsonOptions)
+            == System.Text.Json.JsonSerializer.Serialize(workerResult, JsonOptions),
+        busy && runningMode == AnalysisMode.WebWorker && !resetting);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        session = new(JS, Telemetry);
+        try
+        {
+            await session.InitializeAsync(lifetime.Token);
+            if (lifetime.IsCancellationRequested) return;
+            workerReady = true;
+            status = "Background runtime ready. Choose a diagnostic export.";
+        }
+        catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { return; }
+        catch (Exception exception) when (exception is InvalidOperationException or JSException)
+        {
+            Logger.LogError(exception, "The diagnostic worker could not initialize.");
+            error = "Background processing could not initialize. Reload the workbench to retry.";
+            status = "Background runtime unavailable.";
+        }
+        if (!lifetime.IsCancellationRequested) StateHasChanged();
+    }
+
+    private async Task SelectFileAsync(IBrowserFile file)
+    {
+        if (busy || resetting) return;
+        analysis = mainResult = workerResult = null;
+        mainSeconds = workerSeconds = null;
+        bundle = null;
+        fileName = null;
+        catalog = null;
+        if (file.Size is 0 or > DiagnosticAnalyzer.MaxBundleBytes)
+        {
+            error = "Choose a diagnostic ZIP bundle smaller than 16 MB.";
+            return;
+        }
+        busy = true;
+        status = "Loading product rules through the diagnostics service…";
+        try
+        {
+            error = null;
+            catalog = await CatalogClient.GetAsync("DOCK-PRO", lifetime.Token);
+            await using var input = file.OpenReadStream(DiagnosticAnalyzer.MaxBundleBytes, lifetime.Token);
+            using var data = new MemoryStream();
+            await input.CopyToAsync(data, lifetime.Token);
+            bundle = data.ToArray();
+            fileName = file.Name;
+            status = "Bundle ready. Compare the two execution modes.";
+        }
+        catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
+        catch (Exception exception) when (exception is HttpRequestException or System.Text.Json.JsonException)
+        {
+            Logger.LogError(exception, "The diagnostic catalog request failed.");
+            error = "Product rules could not be loaded from the diagnostics API. Try choosing the file again.";
+            status = "Diagnostic service unavailable.";
+        }
+        catch (IOException)
+        {
+            error = "The local diagnostic file could not be read. Choose the export again.";
+            status = "File could not be read.";
+        }
+        finally { busy = false; }
+    }
+
+    private async Task AnalyzeAsync(AnalysisMode mode)
+    {
+        if (busy || resetting || bundle is null || catalog is null || session is null) return;
+        busy = true;
+        analysis = null;
+        error = null;
+        using var currentOperation = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
+        operation = currentOperation;
+        runningMode = mode;
+        status = mode == AnalysisMode.MainThread ? "Analyzing on the UI thread…" : "Analyzing in a Web Worker. Keep typing your case note.";
+        try
+        {
+            var run = await session.AnalyzeAsync(bundle, catalog, mode, currentOperation.Token);
+            if (run.Outcome.Analysis is not { } result)
+            {
+                error = run.Outcome.Error ?? throw new InvalidDataException("Analysis did not return a result or an input error.");
+                status = "The diagnostic export could not be analyzed.";
+                return;
+            }
+            analysis = result;
+            if (mode == AnalysisMode.MainThread) { mainResult = result; mainSeconds = run.Seconds; }
+            else { workerResult = result; workerSeconds = run.Seconds; }
+            status = $"Analysis complete · {result.EventCount:N0} events reviewed.";
+        }
+        catch (Exception exception) when (currentOperation.IsCancellationRequested
+            && exception is OperationCanceledException or JSException)
+        {
+            status = "Analysis canceled. The local file and notes are unchanged.";
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or JSException or InvalidDataException)
+        {
+            Logger.LogError(exception, "Local diagnostic analysis failed.");
+            error = "Analysis could not complete. Reload the workbench and try again.";
+            status = "Analysis failed.";
+        }
+        finally
+        {
+            operation = null;
+            runningMode = null;
+            busy = false;
+        }
+    }
+
+    private async Task CancelAsync()
+    {
+        if (runningMode != AnalysisMode.WebWorker || operation is null || session is null || resetting) return;
+        resetting = true;
+        workerReady = false;
+        operation.Cancel();
+        status = "Stopping the worker and preparing a fresh runtime…";
+        try
+        {
+            await session.ResetWorkerAsync(lifetime.Token);
+            workerReady = true;
+            status = "Analysis canceled. The local file and notes are unchanged.";
+        }
+        catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
+        catch (Exception exception) when (exception is InvalidOperationException or JSException)
+        {
+            Logger.LogError(exception, "The diagnostic worker could not restart.");
+            error = "Background processing could not restart. Reload the workbench to retry.";
+            status = "Background runtime unavailable.";
+        }
+        finally { resetting = false; }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        lifetime.Cancel();
+        operation?.Cancel();
+        if (session is not null) await session.DisposeAsync();
+        lifetime.Dispose();
+    }
+}

@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\eShopDeviceSupport.ServiceDefaults\eShopDeviceSupport.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\eShopDeviceSupport.Diagnostics\eShopDeviceSupport.Diagnostics.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>
